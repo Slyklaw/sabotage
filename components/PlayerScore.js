@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const PlayerScore = ({ playerName, score, alignLeft }) => (
+const PlayerScore = ({ playerName, score, color, alignLeft }) => (
   <View style={[styles.container, alignLeft ? { alignItems: 'flex-start' } : { alignItems: 'flex-end' }]}>
-    <Text style={styles.playerName}>{playerName}</Text>
-    <Text style={styles.score}>{score}</Text>
+    <Text style={[styles.playerName, { color }]}>{playerName}</Text>
+    <Text style={[styles.score, { color }]}>{score}</Text>
   </View>
 );
 
@@ -16,12 +16,10 @@ const styles = StyleSheet.create({
   playerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#e0e0e0', // Light text
   },
   score: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#4cd964', // Vibrant green score
     marginTop: 2,
   },
 });
