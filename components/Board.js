@@ -17,8 +17,8 @@ const Board = () => {
                 styles.square,
                 { 
                   backgroundColor: (row + col) % 2 === 0 
-                    ? 'rgba(0, 0, 0, 0.1)' 
-                    : 'rgba(0, 0, 0, 0.05)',
+                    ? 'rgba(255, 255, 255, 0.1)'  // Light pattern
+                    : 'rgba(255, 255, 255, 0.05)', // Dark pattern
                   width: SQUARE_SIZE,
                   height: SQUARE_SIZE,
                 }
@@ -34,19 +34,19 @@ const Board = () => {
 const styles = StyleSheet.create({
   board: {
     borderWidth: 2,
-    borderColor: '#333',
-    backgroundColor: '#fff',
+    borderColor: '#4a4a4a', // Brighter border
+    backgroundColor: '#2d2d2d', // Dark board background
     alignSelf: 'center',
-    overflow: 'hidden', // Ensures inner squares don't overlap borders
+    overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
-    borderBottomWidth: 1, // Add subtle separation between rows
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)', // Light grid lines
   },
   square: {
-    borderRightWidth: 1, // Add subtle separation between columns
-    borderRightColor: 'rgba(0, 0, 0, 0.1)',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.1)', // Light grid lines
   },
 });
 

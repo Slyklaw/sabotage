@@ -11,18 +11,18 @@ const PlayerScore = ({ playerName, score, alignLeft }) => (
 const styles = StyleSheet.create({
   container: {
     minWidth: 100,
-    marginTop: 4, // Reduced vertical spacing
+    marginTop: 4,
   },
   playerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#e0e0e0', // Light text
   },
   score: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2c3e50',
-    marginTop: 2, // Reduced spacing between name and score
+    color: '#4cd964', // Vibrant green score
+    marginTop: 2,
   },
 });
 

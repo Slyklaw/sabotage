@@ -7,7 +7,7 @@ import TurnIndicator from './components/TurnIndicator';
 export default function App() {
   return (
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       
       <View style={styles.header}>
         <PlayerScore playerName="Player 1" score={0} alignLeft />
@@ -25,19 +25,21 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#1a1a1a', // Dark background
   },
   header: {
+    height: 80,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start', // Align items to top
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333', // Darker separator
   },
   boardWrapper: {
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 20, // Compensate for header height
+    paddingVertical: 20,
   },
 });

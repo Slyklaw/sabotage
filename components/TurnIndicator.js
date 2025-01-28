@@ -11,17 +11,17 @@ const TurnIndicator = ({ currentTurn }) => (
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginTop: 4, // Align with score components
+    marginTop: 4,
   },
   label: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: '#888', // Medium gray
     marginBottom: 2,
   },
   turnText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#e74c3c',
+    color: '#ff4757', // Bright red
   },
 });
 
