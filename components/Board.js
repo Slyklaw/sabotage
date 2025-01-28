@@ -1,16 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 
-const Board = ({ boardState }) => {
+const Board = ({ boardState, onSquarePress }) => {
   const { width } = Dimensions.get('window');
   const BOARD_MAX_WIDTH = width * 0.95;
   const SQUARE_SIZE = Math.min(BOARD_MAX_WIDTH / 15, 50);
 
   const getSquareColor = (cell) => {
-    if (cell.hasCrown) return '#b8860b'; // Dark gold for crown
-    if (cell.isHome1) return '#1a4a6a';  // Dark blue for Player 1 home
-    if (cell.isHome2) return '#6a1a1a';  // Dark red for Player 2 home
+    if (cell.hasCrown) return '#b8860b';
+    if (cell.isHome1) return '#1a4a6a';
+    if (cell.isHome2) return '#6a1a1a';
     return (cell.row + cell.col) % 2 === 0 
       ? 'rgba(255, 255, 255, 0.1)' 
       : 'rgba(255, 255, 255, 0.05)';
@@ -21,38 +21,41 @@ const Board = ({ boardState }) => {
       {boardState.map((row, rowIndex) => (
         <View key={rowIndex} style={styles.row}>
           {row.map((cell, colIndex) => (
-            <View
+            <TouchableOpacity
               key={colIndex}
-              style={[
-                styles.square,
-                { 
-                  backgroundColor: getSquareColor({ ...cell, row: rowIndex, col: colIndex }),
-                  width: SQUARE_SIZE,
-                  height: SQUARE_SIZE,
-                }
-              ]}
+              onPress={() => onSquarePress(rowIndex, colIndex)}
+              activeOpacity={0.7}
             >
-              {/* Player Pieces */}
-              {(cell.isPlayer1 || cell.isPlayer2) && (
-                <View style={[
-                  styles.piece,
+              <View
+                style={[
+                  styles.square,
                   { 
-                    backgroundColor: cell.isPlayer1 ? '#6ac4ff' : '#ff6b6b',
-                    borderColor: cell.isPlayer1 ? '#4fa3d1' : '#d14f4f',
+                    backgroundColor: getSquareColor({ ...cell, row: rowIndex, col: colIndex }),
+                    width: SQUARE_SIZE,
+                    height: SQUARE_SIZE,
                   }
-                ]} />
-              )}
-              
-              {/* Crown Icon */}
-              {cell.hasCrown && (
-                <Icon 
-                  name="crown" 
-                  size={SQUARE_SIZE * 0.6} 
-                  color="#ffd700" 
-                  style={styles.crown} 
-                />
-              )}
-            </View>
+                ]}
+              >
+                {(cell.isPlayer1 || cell.isPlayer2) && (
+                  <View style={[
+                    styles.piece,
+                    { 
+                      backgroundColor: cell.isPlayer1 ? '#6ac4ff' : '#ff6b6b',
+                      borderColor: cell.isPlayer1 ? '#4fa3d1' : '#d14f4f',
+                    }
+                  ]} />
+                )}
+                
+                {cell.hasCrown && (
+                  <Icon 
+                    name="crown" 
+                    size={SQUARE_SIZE * 0.6} 
+                    color="#ffd700" 
+                    style={styles.crown} 
+                  />
+                )}
+              </View>
+            </TouchableOpacity>
           ))}
         </View>
       ))}

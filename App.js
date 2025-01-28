@@ -7,9 +7,9 @@ import TurnIndicator from './components/TurnIndicator';
 
 const INITIAL_BOARD = Array(7).fill().map((_, row) => 
   Array(15).fill().map((_, col) => ({
-    isPlayer1: col === 3 && row === 3,  // Player 1 home (3,3)
-    isPlayer2: col === 11 && row === 3, // Player 2 home (11,3)
-    hasCrown: col === 7 && row === 3,   // Center (7,3)
+    isPlayer1: col === 3 && row === 3,
+    isPlayer2: col === 11 && row === 3,
+    hasCrown: col === 7 && row === 3,
     isHome1: col === 3 && row === 3,
     isHome2: col === 11 && row === 3,
   }))
@@ -18,6 +18,18 @@ const INITIAL_BOARD = Array(7).fill().map((_, row) =>
 export default function App() {
   const [currentTurn, setCurrentTurn] = useState('Player 1');
   const [boardState, setBoardState] = useState(INITIAL_BOARD);
+
+  const handleSquarePress = (row, col) => {
+    const cell = boardState[row][col];
+    if (cell.hasCrown) return; // Ignore crown clicks
+
+    // Only allow current player to interact with their pieces
+    if (currentTurn === 'Player 1' && cell.isPlayer1) {
+      setCurrentTurn('Player 2');
+    } else if (currentTurn === 'Player 2' && cell.isPlayer2) {
+      setCurrentTurn('Player 1');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -30,7 +42,7 @@ export default function App() {
       </View>
 
       <View style={styles.boardWrapper}>
-        <Board boardState={boardState} />
+        <Board boardState={boardState} onSquarePress={handleSquarePress} />
       </View>
     </View>
   );
