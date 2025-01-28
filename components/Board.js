@@ -31,9 +31,12 @@ const Board = () => (
 
 const styles = StyleSheet.create({
   board: {
+    flex: 0,
     borderWidth: 2,
     borderColor: '#333',
     backgroundColor: '#fff',
+    alignSelf: 'center', // Centers the board horizontally
+    marginVertical: 10,
   },
   row: {
     flexDirection: 'row',
