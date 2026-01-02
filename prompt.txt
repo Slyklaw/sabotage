@@ -3,8 +3,7 @@ Prompt:
 Let's make a two-player turn-based board game named "Sabotage".
 It should be playable on mobile devices and desktop browsers.
 Use a modern dark color theme.
-Use Expo SDK for React Native with a "blank" template.
-Be sure to give instructions for initial project setup and to install any necessary dependencies.
+Use html, css, and javascript.
 It should look like a classic board game along the lines of checkers or chess.
 A Player's score is how many pieces he still has on the board.
 In the upper-left corner, display "Player 1" and his score.
