@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sabotage</title>
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#111;color:#fff;font-family:sans-serif;}
+  #container{display:flex;flex-direction:column;align-items:center;height:100%;gap:1rem;}
+  #header{display:flex;justify-content:space-between;width:90%;gap:1rem;}
+  .score{font-size:1.2rem;background:#222;padding:.3rem .6rem;border-radius:4px;}
+  #turnIndicator{font-size:1.4rem;text-align:center;flex-grow:1;}
+  #board{display:grid;grid-template-columns:repeat(15,40px);grid-template-rows:repeat(7,40px);gap:1px;background:#333;padding:5px;}
+  .cell{
+    position:relative;
+    width:40px;height:40px;
+    border-radius:3px;
+    display:flex;justify-content:center;align-items:center;
+    font-size:1rem;line-height:1;
+  }
+  .cell.light{background:#2a2a2a;}
+  .cell.dark{background:#1a1a1a;}
+  .cell.highlight{background:#444;}
+  .piece{
+    position:absolute;width:30px;height:30px;
+    border-radius:50%;display:flex;justify-content:center;align-items:center;
+    color:#fff;font-weight:bold;background-color:var(--player-color);
+  }
+  .piece.player1{--player-color:#1e90ff;}
+  .piece.player2{--player-color:#e63946;}
+  .crown::after{content:"👑";font-size:18px;}
+  #winnerBanner{
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;
+    background:rgba(0,0,0,0.8);color:#fff;visibility:hidden;
+  }
+  #winnerBanner.show{visibility:visible;}
+  #winnerBanner button{
+    margin-top:1rem;padding:.5rem 1rem;font-size:1rem;background:#444;color:#fff;
+    border:none;border-radius:4px;cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="header">
+    <div class="score" id="score1">Player 1: <span id="scoreValue1">4</span></div>
+    <div id="turnIndicator">Player 1's Turn</div>
+    <div class="score" id="score2">Player 2: <span id="scoreValue2">4</span></div>
+  </div>
+  <div id="board"></div>
+</div>
+
+<div id="winnerBanner">
+  <div id="winnerMessage"></div>
+  <button id="restartBtn">Restart</button>
+</div>
+
+<script>
+  // ---------- Configurations ----------
+  const boardRows = 7;                       // $boardRows $
+  const boardCols = 15;                      // $boardCols $
+  const homePos = {1:{col:3,row:3}, 2:{col:11,row:3}}; // Home cells (NPC starts)
+  const crownPos = {col:7,row:3};            // Center of the board
+
+  // ---------- Game State ----------
+  let pieces = [];            // {id,player,col,row,hasCrown}
+  let scores = {1:4,2:4};     // Starting pieces per player
+  let turn = 1;               // Current player (1 or 2)
+  let selectedPiece = null;   // Currently selected piece object
+  let crownHolder = null;     // Piece that holds the Crown
+  const highlightClass = 'highlight';
+
+  // ---------- Helper shortcuts ----------
+  /** @param {string} id */
+  function $(id){return document.getElementById(id);}
+
+  // ---------- Utility functions ----------
+  /** Update the numeric score display for both players */
+  function updateScoreDisplay(){
+    $('scoreValue1').textContent = scores[1];
+    $('scoreValue2').textContent = scores[2];
+  }
+
+  /** Return the DOM cell at (col,row) */
+  function getCell(col,row){
+    // board cells are stored row‑major (row * boardCols + col)
+    return $('board').children[row*boardCols + col];
+  }
+
+  /** Return the piece object that occupies (col,row) or null */
+  function getPieceAt(col,row){
+    return pieces.find(p=>p.col===col && p.row===row)||null;
+  }
+
+  // ---------- Board rendering ----------
+  function renderBoard(){
+    const board = $('board');
+    board.innerHTML = '';
+
+    // create empty cells
+    for(let r=0;r<boardRows;r++){
+      for(let c=0;c<boardCols;c++){
+        const cell = document.createElement('div');
+        cell.className = `cell ${(c+r)%2===0?'light':'dark'}`;
+        cell.dataset.col = c; cell.dataset.row = r;
+        cell.addEventListener('click',()=>handleBoardClick(cell));
+        board.appendChild(cell);
+      }
+    }
+
+    // place pieces on the freshly created board
+    pieces.forEach(p=>{
+      const cell = getCell(p.col,p.row);
+      const pieceEl = document.createElement('div');
+      pieceEl.className = `piece player${p.player}`;
+      if(p.hasCrown) pieceEl.classList.add('crown');
+      pieceEl.dataset.pieceId = p.id;
+      cell.appendChild(pieceEl);
+    });
+  }
+
+  // ---------- Interaction handlers ----------
+  function handleBoardClick(cell){
+    const col = +cell.dataset.col;
+    const row = +cell.dataset.row;
+    const piece = getPieceAt(col,row);
+
+    if(selectedPiece){
+      // A piece is already selected – attempt to move it
+      movePiece(selectedPiece, col, row);
+      selectedPiece = null;
+      clearHighlights();
+      return;
+    }
+
+    // No piece selected yet – select if it belongs to the current player
+    if(piece && piece.player===turn){
+      selectedPiece = piece;
+      highlightMoves(piece);
+    }
+  }
+
+  /** Highlight all legal destination cells for the given piece */
+  function highlightMoves(piece){
+    const col = piece.col;
+    const row = piece.row;
+    const N = pieces.filter(p=>p.col===col).length; // distance = #pieces in column
+
+    const dirs = [
+      [ N,  0],[-N,  0],[0,  N],[0,-N],
+      [ N,  N],[ N,-N],[-N,  N],[-N,-N]
+    ];
+
+    dirs.forEach(d=>{
+      const [dx,dy]=d;
+      const targetCol = col+dx;
+      const targetRow = row+dy;
+      if(targetCol<0||targetCol>=boardCols||targetRow<0||targetRow>=boardRows) return;
+
+      const targetPiece = getPieceAt(targetCol,targetRow);
+      if(targetPiece && targetPiece.player===turn) return; // cannot land on own piece
+
+      const cell = getCell(targetCol,targetRow);
+      cell.classList.add(highlightClass);
+    });
+  }
+
+  function clearHighlights(){
+    Array.from($('board').children).forEach(c=>c.classList.remove(highlightClass));
+  }
+
+  /** Move a piece to (newCol,newRow) and resolve captures/crown logic */
+  function movePiece(piece, newCol, newRow){
+    // Capture opponent if landing on their piece
+    const targetPiece = getPieceAt(newCol,newRow);
+    if(targetPiece && targetPiece.player!==turn){
+      scores[targetPiece.player]--;
+      updateScoreDisplay();
+
+      // Remove captured piece from game state
+      pieces = pieces.filter(p=>!(p.id===targetPiece.id));
+      if(targetPiece===crownHolder){
+        crownHolder = null;
+        targetPiece.hasCrown = false;
+      }
+    }
+
+    // Update DOM positioning
+    const fromCell = getCell(piece.col,piece.row);
+    const toCell   = getCell(newCol,newRow);
+    fromCell.removeChild(fromCell.querySelector('.piece'));
+
+    piece.col = newCol;
+    piece.row = newRow;
+    toCell.appendChild(piece.el);
+
+    // Crown handling
+    if(newCol===crownPos.col && newRow===crownPos.row){
+      piece.hasCrown = true;
+      crownHolder = piece;
+    }
+
+    // Win condition 1 – Crown delivered to Home
+    if(piece.hasCrown && piece.col===homePos[piece.player].col && piece.row===homePos[piece.player].row){
+      declareWinner(piece.player);
+      return;
+    }
+
+    // Win condition 2 – opponent eliminated
+    if(scores[3-turn]<=0){
+      declareWinner(turn);
+      return;
+    }
+
+    // Switch turn
+    turn = 3-turn;
+    $('turnIndicator').textContent = `Player ${turn}'s Turn`;
+  }
+
+  /** Show the victory banner and bind the Restart button */
+  function declareWinner(winner){
+    const banner = $('winnerBanner');
+    $('winnerMessage').textContent = `Player ${winner} Wins!`;
+    banner.classList.add('show');
+    $('restartBtn').onclick = ()=>{ initGame(); banner.classList.remove('show'); };
+  }
+
+  // ---------- Game initialization ----------
+  function initGame(){
+    // Reset all mutable state
+    pieces = [];
+    scores = {1:4,2:4};
+    turn = 1;
+    selectedPiece = null;
+    crownHolder = null;
+    updateScoreDisplay();
+    $('turnIndicator').textContent = `Player ${turn}'s Turn`;
+
+    // Create pieces adjacent to each player's home cell
+    [1,2].forEach(p=>{
+      const home = homePos[p];
+      const adjacent = [
+        {col:home.col-1,row:home.row}, // West
+        {col:home.col+1,row:home.row}, // East
+        {col:home.col,   row:home.row-1}, // North
+        {col:home.col,   row:home.row+1}  // South
+      ];
+      adjacent.forEach(pos=>{
+        pieces.push({
+          id:`p${p}(${pos.col},${pos.row})`,
+          player:p,
+          col:pos.col,
+          row:pos.row,
+          hasCrown:false
+        });
+      });
+    });
+
+    renderBoard();
+  }
+
+  // ---------- Kick‑off ----------
+  initGame();
+</script>
+</body>
+</html>

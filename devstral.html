@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabotage</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a1a;
+            --bg-board: #2d2d2d;
+            --player1-color: #4a90e2;
+            --player2-color: #e24a4a;
+            --crown-color: #f5d742;
+            --highlight-color: rgba(255, 255, 255, 0.3);
+            --text-color: #e0e0e0;
+            --text-shadow: 0 0 5px rgba(0, 0, 0, 0.7);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            text-shadow: var(--text-shadow);
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .turn-indicator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .board-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 15/7;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-board);
+            border: 2px solid #444;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .cell:nth-child(15n + 1), .cell:nth-child(15n + 3), .cell:nth-child(15n + 5),
+        .cell:nth-child(15n + 7), .cell:nth-child(15n + 9), .cell:nth-child(15n + 11),
+        .cell:nth-child(15n + 13), .cell:nth-child(15n + 15) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .cell:nth-child(15n + 2), .cell:nth-child(15n + 4), .cell:nth-child(15n + 6),
+        .cell:nth-child(15n + 8), .cell:nth-child(15n + 10), .cell:nth-child(15n + 12),
+        .cell:nth-child(15n + 14) {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .piece {
+            width: 80%;
+            height: 80%;
+            border-radius: 50%;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.2s;
+        }
+
+        .piece.player1 {
+            background-color: var(--player1-color);
+        }
+
+        .piece.player2 {
+            background-color: var(--player2-color);
+        }
+
+        .piece.crown {
+            background-color: var(--crown-color);
+            box-shadow: 0 0 10px rgba(245, 215, 66, 0.7);
+        }
+
+        .piece.has-crown::after {
+            content: "⚑";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 60%;
+            color: var(--crown-color);
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.7);
+        }
+
+        .home {
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            opacity: 0.3;
+            z-index: 1;
+        }
+
+        .home.player1 {
+            background-color: var(--player1-color);
+        }
+
+        .home.player2 {
+            background-color: var(--player2-color);
+        }
+
+        .highlight {
+            position: absolute;
+            width: 60%;
+            height: 60%;
+            border-radius: 50%;
+            background-color: var(--highlight-color);
+            z-index: 0;
+        }
+
+        .winner-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .winner-banner.show {
+            display: flex;
+        }
+
+        .winner-text {
+            font-size: 3rem;
+            margin-bottom: 30px;
+            color: var(--crown-color);
+            text-shadow: 0 0 10px rgba(245, 215, 66, 0.7);
+        }
+
+        .restart-btn {
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            background-color: var(--crown-color);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 0 10px rgba(245, 215, 66, 0.5);
+        }
+
+        .restart-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(245, 215, 66, 0.7);
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                font-size: 1rem;
+            }
+
+            .turn-indicator {
+                font-size: 1.2rem;
+            }
+
+            .winner-text {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="player-info">
+                <div class="player-color" style="background-color: var(--player1-color);"></div>
+                <span>Player 1: <span id="player1-score">4</span></span>
+            </div>
+            <div class="turn-indicator" id="turn-indicator">Player 1's Turn</div>
+            <div class="player-info">
+                <span>Player 2: <span id="player2-score">4</span></span>
+                <div class="player-color" style="background-color: var(--player2-color);"></div>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="board" id="board"></div>
+        </div>
+    </div>
+
+    <div class="winner-banner" id="winner-banner">
+        <div class="winner-text" id="winner-text">Player 1 Wins!</div>
+        <button class="restart-btn" id="restart-btn">Restart Game</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('board');
+            const turnIndicator = document.getElementById('turn-indicator');
+            const player1Score = document.getElementById('player1-score');
+            const player2Score = document.getElementById('player2-score');
+            const winnerBanner = document.getElementById('winner-banner');
+            const winnerText = document.getElementById('winner-text');
+            const restartBtn = document.getElementById('restart-btn');
+
+            const COLUMNS = 15;
+            const ROWS = 7;
+            const PLAYER1_HOME = [3, 3];
+            const PLAYER2_HOME = [11, 3];
+            const CROWN_POSITION = [7, 3];
+
+            let gameState = {
+                board: [],
+                currentPlayer: 1,
+                selectedPiece: null,
+                selectedPosition: null,
+                player1Pieces: 4,
+                player2Pieces: 4,
+                crownHolder: null,
+                gameOver: false
+            };
+
+            // Initialize the game
+            function initGame() {
+                // Clear the board
+                board.innerHTML = '';
+
+                // Create the board first
+                createBoard();
+
+                // Reset game state
+                gameState = {
+                    board: Array(ROWS).fill().map(() => Array(COLUMNS).fill(null)),
+                    currentPlayer: 1,
+                    selectedPiece: null,
+                    selectedPosition: null,
+                    player1Pieces: 4,
+                    player2Pieces: 4,
+                    crownHolder: null,
+                    gameOver: false
+                };
+
+                // Now place homes (visual only)
+                placeHome(PLAYER1_HOME, 1);
+                placeHome(PLAYER2_HOME, 2);
+
+                // Place crown
+                placeCrown(CROWN_POSITION);
+
+                // Place player pieces
+                placePlayerPieces(1, PLAYER1_HOME);
+                placePlayerPieces(2, PLAYER2_HOME);
+
+                // Update UI
+                updateScoreDisplay();
+                turnIndicator.textContent = "Player 1's Turn";
+                winnerBanner.classList.remove('show');
+            }
+
+            function createBoard() {
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLUMNS; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.col = col;
+                        cell.dataset.row = row;
+
+                        cell.addEventListener('click', () => handleCellClick(col, row));
+
+                        board.appendChild(cell);
+                    }
+                }
+            }
+
+            function placeHome(position, player) {
+                const [col, row] = position;
+                const cell = getCellElement(col, row);
+                if (cell) {
+                    const home = document.createElement('div');
+                    home.className = `home player${player}`;
+                    cell.appendChild(home);
+                }
+            }
+
+            function placeCrown(position) {
+                const [col, row] = position;
+                gameState.board[row][col] = { type: 'crown' };
+                renderCell(col, row);
+            }
+
+            function placePlayerPieces(player, homePosition) {
+                const [homeCol, homeRow] = homePosition;
+                const directions = [
+                    [0, -1],  // North
+                    [0, 1],   // South
+                    [-1, 0],  // West
+                    [1, 0]    // East
+                ];
+
+                directions.forEach(([dc, dr]) => {
+                    const col = homeCol + dc;
+                    const row = homeRow + dr;
+
+                    if (isValidPosition(col, row)) {
+                        gameState.board[row][col] = { type: 'piece', player };
+                        renderCell(col, row);
+                    }
+                });
+            }
+
+            function renderCell(col, row) {
+                const cell = getCellElement(col, row);
+                if (!cell) return;
+
+                // Clear cell but keep home markers
+                const homeMarker = cell.querySelector('.home');
+                cell.innerHTML = '';
+                if (homeMarker) {
+                    cell.appendChild(homeMarker);
+                }
+
+                const content = gameState.board[row][col];
+                if (content) {
+                    const piece = document.createElement('div');
+                    piece.className = `piece ${content.type}`;
+
+                    if (content.type === 'piece') {
+                        piece.classList.add(`player${content.player}`);
+                        if (gameState.crownHolder === content.player) {
+                            piece.classList.add('has-crown');
+                        }
+                    }
+
+                    cell.appendChild(piece);
+                }
+            }
+
+            function getCellElement(col, row) {
+                return document.querySelector(`.cell[data-col="${col}"][data-row="${row}"]`);
+            }
+
+            function handleCellClick(col, row) {
+                if (gameState.gameOver) return;
+
+                const cellContent = gameState.board[row][col];
+
+                // If no piece is selected and this cell has a piece belonging to current player
+                if (!gameState.selectedPiece && cellContent && cellContent.type === 'piece' && cellContent.player === gameState.currentPlayer) {
+                    selectPiece(col, row);
+                }
+                // If a piece is selected and this is a valid move
+                else if (gameState.selectedPiece && isValidMove(col, row)) {
+                    movePiece(col, row);
+                }
+                // Deselect if clicking on the same piece
+                else if (gameState.selectedPiece && gameState.selectedPosition[0] === col && gameState.selectedPosition[1] === row) {
+                    deselectPiece();
+                }
+                // Otherwise deselect any selected piece
+                else if (gameState.selectedPiece) {
+                    deselectPiece();
+                }
+            }
+
+            function selectPiece(col, row) {
+                // Clear any existing highlights
+                document.querySelectorAll('.highlight').forEach(el => el.remove());
+
+                gameState.selectedPiece = gameState.board[row][col];
+                gameState.selectedPosition = [col, row];
+
+                // Highlight selected piece
+                const cell = getCellElement(col, row);
+                if (cell) {
+                    const highlight = document.createElement('div');
+                    highlight.className = 'highlight';
+                    cell.appendChild(highlight);
+                }
+
+                // Calculate possible moves
+                const moves = calculatePossibleMoves(col, row);
+
+                // Highlight possible moves
+                moves.forEach(([moveCol, moveRow]) => {
+                    const moveCell = getCellElement(moveCol, moveRow);
+                    if (moveCell) {
+                        const moveHighlight = document.createElement('div');
+                        moveHighlight.className = 'highlight';
+                        moveCell.appendChild(moveHighlight);
+                    }
+                });
+            }
+
+            function deselectPiece() {
+                gameState.selectedPiece = null;
+                gameState.selectedPosition = null;
+                document.querySelectorAll('.highlight').forEach(el => el.remove());
+            }
+
+            function calculatePossibleMoves(col, row) {
+                const moves = [];
+                const piece = gameState.board[row][col];
+
+                if (!piece || piece.type !== 'piece') return moves;
+
+                // Count pieces in the same column (excluding crown)
+                let pieceCount = 0;
+                for (let r = 0; r < ROWS; r++) {
+                    const cell = gameState.board[r][col];
+                    if (cell && cell.type === 'piece') {
+                        pieceCount++;
+                    }
+                }
+
+                // If no pieces in column, can't move
+                if (pieceCount === 0) return moves;
+
+                // Generate all possible moves in cardinal directions
+                const directions = [
+                    [-pieceCount, 0],   // West
+                    [pieceCount, 0],    // East
+                    [0, -pieceCount],   // North
+                    [0, pieceCount]     // South
+                ];
+
+                directions.forEach(([dc, dr]) => {
+                    const newCol = col + dc;
+                    const newRow = row + dr;
+
+                    if (isValidPosition(newCol, newRow)) {
+                        const target = gameState.board[newRow][newCol];
+
+                        // Can move to empty space or opponent's piece
+                        if (!target || (target.type === 'piece' && target.player !== piece.player)) {
+                            moves.push([newCol, newRow]);
+                        }
+                    }
+                });
+
+                return moves;
+            }
+
+            function isValidMove(col, row) {
+                if (!gameState.selectedPosition) return false;
+
+                const [selectedCol, selectedRow] = gameState.selectedPosition;
+                const moves = calculatePossibleMoves(selectedCol, selectedRow);
+
+                return moves.some(([moveCol, moveRow]) => moveCol === col && moveRow === row);
+            }
+
+            function movePiece(col, row) {
+                const [fromCol, fromRow] = gameState.selectedPosition;
+                const piece = gameState.board[fromRow][fromCol];
+
+                // Remove piece from original position
+                gameState.board[fromRow][fromCol] = null;
+                renderCell(fromCol, fromRow);
+
+                // Handle target cell
+                const target = gameState.board[row][col];
+
+                // If moving to crown position
+                if (arraysEqual([col, row], CROWN_POSITION)) {
+                    gameState.crownHolder = piece.player;
+                    gameState.board[row][col] = piece;
+                }
+                // If capturing opponent's piece
+                else if (target && target.type === 'piece' && target.player !== piece.player) {
+                    // Decrease opponent's piece count
+                    if (target.player === 1) {
+                        gameState.player1Pieces--;
+                    } else {
+                        gameState.player2Pieces--;
+                    }
+
+                    // If opponent had the crown, it's now up for grabs
+                    if (gameState.crownHolder === target.player) {
+                        gameState.crownHolder = null;
+                    }
+
+                    gameState.board[row][col] = piece;
+                }
+                // Normal move
+                else {
+                    gameState.board[row][col] = piece;
+                }
+
+                // Check for win conditions
+                checkWinConditions();
+
+                // Update UI
+                renderCell(col, row);
+                updateScoreDisplay();
+
+                // Switch player if game isn't over
+                if (!gameState.gameOver) {
+                    gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+                    turnIndicator.textContent = `Player ${gameState.currentPlayer}'s Turn`;
+                }
+
+                // Deselect piece
+                deselectPiece();
+            }
+
+            function checkWinConditions() {
+                const currentPlayer = gameState.currentPlayer;
+                const opponent = currentPlayer === 1 ? 2 : 1;
+
+                // Condition 1: Capture the crown and return it home
+                if (gameState.crownHolder === currentPlayer) {
+                    const home = currentPlayer === 1 ? PLAYER1_HOME : PLAYER2_HOME;
+                    const [homeCol, homeRow] = home;
+
+                    // Check if any of current player's pieces is at home
+                    for (let col = 0; col < COLUMNS; col++) {
+                        for (let row = 0; row < ROWS; row++) {
+                            const cell = gameState.board[row][col];
+                            if (cell && cell.type === 'piece' && cell.player === currentPlayer &&
+                                col === homeCol && row === homeRow) {
+                                endGame(currentPlayer, "captured the crown and returned it home!");
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // Condition 2: Eliminate all opponent pieces
+                if (currentPlayer === 1 && gameState.player2Pieces === 0) {
+                    endGame(1, "eliminated all opponent pieces!");
+                } else if (currentPlayer === 2 && gameState.player1Pieces === 0) {
+                    endGame(2, "eliminated all opponent pieces!");
+                }
+            }
+
+            function endGame(winner, reason) {
+                gameState.gameOver = true;
+                winnerText.textContent = `Player ${winner} Wins! (${reason})`;
+                winnerBanner.classList.add('show');
+            }
+
+            function updateScoreDisplay() {
+                player1Score.textContent = gameState.player1Pieces;
+                player2Score.textContent = gameState.player2Pieces;
+            }
+
+            function isValidPosition(col, row) {
+                return col >= 0 && col < COLUMNS && row >= 0 && row < ROWS;
+            }
+
+            function arraysEqual(a, b) {
+                return a.length === b.length && a.every((val, i) => val === b[i]);
+            }
+
+            // Initialize the game
+            initGame();
+
+            // Restart button
+            restartBtn.addEventListener('click', initGame);
+
+            // Resize board to fit window
+            function resizeBoard() {
+                const container = document.querySelector('.board-container');
+                const gameContainer = document.querySelector('.game-container');
+                const maxWidth = window.innerWidth * 0.9;
+                const maxHeight = window.innerHeight * 0.7;
+
+                // Calculate the maximum possible size while maintaining aspect ratio
+                const aspectRatio = 15 / 7;
+                let width = maxWidth;
+                let height = width / aspectRatio;
+
+                if (height > maxHeight) {
+                    height = maxHeight;
+                    width = height * aspectRatio;
+                }
+
+                container.style.width = `${width}px`;
+                container.style.height = `${height}px`;
+
+                // Adjust game container padding for smaller screens
+                if (window.innerWidth < 600) {
+                    gameContainer.style.padding = '10px';
+                } else {
+                    gameContainer.style.padding = '20px';
+                }
+            }
+
+            window.addEventListener('resize', resizeBoard);
+            resizeBoard();
+        });
+    </script>
+</body>
+</html>

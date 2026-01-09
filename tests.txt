@@ -1,2 +1,12 @@
 Roo Code + iquest-coder:
 
+OpenRouter (free):
+
+* Kat coder
++ excellent, bug with crown capture
+
+* Devstral
++ ok, first shot 1 error, fixed then, can't capture crown, board isn't checkerboard.
+
+* Nemotron reasoning
++ potential. many small errors, could be easy to fix up

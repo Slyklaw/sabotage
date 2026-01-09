@@ -1,0 +1,396 @@
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sabotage</title>
+<style>
+  :root{
+    --bg:#0f1216;
+    --board:#1a1f26;
+    --grid:#242a33;
+    --accent:#c0c9d1;
+    --p1:#ff4d4d;
+    --p2:#4d85ff;
+    --win:#ffd700;
+    --shadow:0 10px 20px rgba(0,0,0,0.35);
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#0c0f13,#0f1216 40%,#12161c 100%);color:#e8edf3;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+  #app{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:16px}
+  .hud{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:1000px;margin-bottom:12px}
+  .player{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;min-width:120px;box-shadow:var(--shadow)}
+  .player .name{font-weight:700;letter-spacing:.3px}
+  .player .score{font-size:1.2rem;font-weight:800}
+  .turn{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#e8edf3;padding:8px 14px;border-radius:999px;font-weight:700;box-shadow:var(--shadow)}
+  .board-wrap{position:relative;display:flex;justify-content:center;align-items:center}
+  .board{background:var(--board);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px}
+  .board table{border-collapse:collapse}
+  .board td{
+    width:var(--size); height:var(--size);
+    position:relative;
+  }
+  .board td::before{
+    content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0.01) 60%, transparent 60%);
+  }
+  .board td.home.p1{background:rgba(255,77,77,0.12)}
+  .board td.home.p2{background:rgba(77,133,255,0.12)}
+  .board td.center{background:linear-gradient(180deg, rgba(255,215,0,0.12), rgba(255,215,0,0.06))}
+  .board td .spot{
+    width:100%; height:100%;
+    border-radius:6px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.06);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;
+  }
+  .board td .spot:hover{background:rgba(255,255,255,0.08)}
+  .board td .spot.selected{outline:2px solid var(--accent)}
+  .board td .spot.move{outline:2px dashed rgba(255,255,255,0.7)}
+  .board td .spot.move::after{
+    content:""; position:absolute; inset:0; border-radius:6px; background:linear-gradient(180deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+    pointer-events:none;
+  }
+  .piece{
+    width:70%; height:70%;
+    border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.4) 40%, rgba(255,255,255,0.2) 60%, rgba(0,0,0,0.2) 100%);
+    box-shadow:inset 0 6px 12px rgba(255,255,255,0.3), 0 4px 10px rgba(0,0,0,0.35);
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .p1 .piece{background:radial-gradient(circle at 30% 30%, rgba(255,77,77,0.9), rgba(255,77,77,0.6) 40%, rgba(255,77,77,0.4) 60%, rgba(0,0,0,0.2) 100%);border:1px solid rgba(255,255,255,0.4)}
+  .p2 .piece{background:radial-gradient(circle at 30% 30%, rgba(77,133,255,0.9), rgba(77,133,255,0.6) 40%, rgba(77,133,255,0.4) 60%, rgba(0,0,0,0.2) 100%);border:1px solid rgba(255,255,255,0.4)}
+  .crown{width:55%;height:55%;position:absolute;bottom:60%;left:50%;transform:translateX(-50%);pointer-events:none}
+  .crown svg{width:100%;height:100%}
+  .crown .inner{fill:rgba(255,215,0,0.85)}
+  .crown .outer{fill:rgba(255,215,0,0.95)}
+  .banner{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,0.55);backdrop-filter:blur(6px);z-index:10
+  }
+  .modal{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#e8edf3;border-radius:14px;padding:20px;text-align:center;box-shadow:var(--shadow)
+  }
+  .modal h2{margin:0 0 8px}
+  .modal .restart{background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));border:1px solid rgba(255,255,255,0.15);color:#e8edf3;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer;margin-top:10px}
+  .modal .restart:hover{background:rgba(255,255,255,0.16)}
+  .footer{margin-top:10px;color:#b9c0c8;font-size:.95rem}
+  @media (max-width:600px){
+    .hud{flex-direction:column;gap:10px}
+    .board{padding:8px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud">
+    <div class="player p1">
+      <div class="name">Player 1</div>
+      <div class="score" id="score1">4</div>
+    </div>
+    <div class="player p2">
+      <div class="name">Player 2</div>
+      <div class="score" id="score2">4</div>
+    </div>
+  </div>
+  <div class="turn" id="turn">Player 1's turn</div>
+  <div class="board-wrap">
+    <div class="board" id="board" role="grid" aria-label="Sabotage board"></div>
+  </div>
+  <div class="footer">Tap/click to select a piece, then a legal move. Capture the Crown and return it to your Home to win.</div>
+</div>
+
+<div id="banner" class="banner" style="display:none" aria-hidden="true">
+  <div class="modal">
+    <h2 id="winnerText">Player 1 Wins!</h2>
+    <button class="restart" id="restartBtn">Restart</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const COLS = 15, ROWS = 7;
+  const HOME1 = {c:3, r:3};
+  const HOME2 = {c:11, r:3};
+  const CENTER = {c:7, r:3};
+  const DIRS = [
+    {dc:-1, dr:-1}, {dc:0, dr:-1}, {dc:1, dr:-1},
+    {dc:-1, dr:0},                 {dc:1, dr:0},
+    {dc:-1, dr:1},  {dc:0, dr:1},  {dc:1, dr:1}
+  ];
+  const state = {
+    turn: 1, // 1 or 2
+    selected: null, // {c,r}
+    board: [], // [r][c] -> {player:1|2|null, crown:true|false}
+    scores: [0,4,4], // index 1 and 2
+    crownPos: null, // {c,r}
+    crownHeld: null, // 1 or 2
+    gameover: false
+  };
+
+  const boardEl = document.getElementById('board');
+  const bannerEl = document.getElementById('banner');
+  const winnerEl = document.getElementById('winnerText');
+  const restartBtn = document.getElementById('restartBtn');
+  const turnEl = document.getElementById('turn');
+  const score1El = document.getElementById('score1');
+  const score2El = document.getElementById('score2');
+
+  function init(){
+    state.board = Array.from({length:ROWS}, ()=>Array.from({length:COLS}, ()=>({player:null, crown:false})));
+    // Place homes
+    state.board[HOME1.r][HOME1.c].player = 'home1';
+    state.board[HOME2.r][HOME2.c].player = 'home2';
+    // Place pieces
+    const p1Pieces = [{c:HOME1.c, r:HOME1.r-1},{c:HOME1.c, r:HOME1.r+1},{c:HOME1.c-1, r:HOME1.r},{c:HOME1.c+1, r:HOME1.r}];
+    const p2Pieces = [{c:HOME2.c, r:HOME2.r-1},{c:HOME2.c, r:HOME2.r+1},{c:HOME2.c-1, r:HOME2.r},{c:HOME2.c+1, r:HOME2.r}];
+    for(const pos of p1Pieces){ state.board[pos.r][pos.c].player = 1; }
+    for(const pos of p2Pieces){ state.board[pos.r][pos.c].player = 2; }
+    // Crown at center
+    state.board[CENTER.r][CENTER.c].crown = true;
+    state.crownPos = {c:CENTER.c, r:CENTER.r};
+    state.crownHeld = null;
+    state.turn = 1;
+    state.selected = null;
+    state.gameover = false;
+    state.scores[1] = 4; state.scores[2] = 4;
+    bannerEl.style.display = 'none';
+    updateTurnUI();
+    render();
+  }
+
+  function updateTurnUI(){
+    const name = state.turn===1 ? 'Player 1' : 'Player 2';
+    turnEl.textContent = name + "'s turn";
+  }
+
+  function updateScores(){
+    score1El.textContent = state.scores[1];
+    score2El.textContent = state.scores[2];
+  }
+
+  function render(){
+    boardEl.innerHTML = '';
+    // Compute cell size to fit within container
+    const wrap = boardEl.parentElement;
+    const maxW = Math.min(window.innerWidth - 32, 800);
+    const maxH = Math.min(window.innerHeight - 260, 560);
+    const cellSize = Math.min(Math.floor(maxW / COLS), Math.floor(maxH / ROWS));
+    boardEl.style.setProperty('--size', cellSize + 'px');
+    const table = document.createElement('table');
+    for(let r=0;r<ROWS;r++){
+      const tr = document.createElement('tr');
+      for(let c=0;c<COLS;c++){
+        const td = document.createElement('td');
+        td.dataset.c = c; td.dataset.r = r;
+        const isHome1 = (c===HOME1.c && r===HOME1.r);
+        const isHome2 = (c===HOME2.c && r===HOME2.r);
+        const isCenter = (c===CENTER.c && r===CENTER.r);
+        if(isHome1) td.classList.add('home','p1');
+        if(isHome2) td.classList.add('home','p2');
+        if(isCenter) td.classList.add('center');
+        const cell = state.board[r][c];
+        const spot = document.createElement('div');
+        spot.className = 'spot';
+        spot.setAttribute('role','button');
+        spot.setAttribute('aria-label', `Cell ${c},${r}`);
+        spot.tabIndex = 0;
+        spot.addEventListener('click', ()=>onCellClick(c,r));
+        spot.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); onCellClick(c,r); } });
+
+        // Highlight selected
+        if(state.selected && state.selected.c===c && state.selected.r===r){
+          spot.classList.add('selected');
+        }
+        // Highlight legal move
+        if(state.selected){
+          const moves = getLegalMoves(state.selected.c, state.selected.r);
+          if(moves.find(m=>m.c===c && m.r===r)){
+            spot.classList.add('move');
+          }
+        }
+
+        // Render piece
+        if(cell.player && cell.player!=='home1' && cell.player!=='home2'){
+          const piece = document.createElement('div');
+          piece.className = 'piece';
+          piece.classList.add(cell.player===1 ? 'p1' : 'p2');
+          // Crown indicator
+          if(cell.player===1 && state.crownHeld===1 || cell.player===2 && state.crownHeld===2){
+            const crown = document.createElement('div');
+            crown.className = 'crown';
+            crown.innerHTML = `
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path class="outer" d="M12 3l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z"/>
+                <path class="inner" d="M12 6l1 3h3l-2.5 2.5L14 16l-2.5-2.5L9 16l1.5-4.5L8 8h3l1-3z" opacity="0.8"/>
+              </svg>`;
+            piece.appendChild(crown);
+          }
+          spot.appendChild(piece);
+        }
+        // Render crown if not held
+        if(cell.crown && state.crownHeld===null){
+          const crown = document.createElement('div');
+          crown.className = 'crown';
+          crown.innerHTML = `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path class="outer" d="M12 3l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z"/>
+              <path class="inner" d="M12 6l1 3h3l-2.5 2.5L14 16l-2.5-2.5L9 16l1.5-4.5L8 8h3l1-3z" opacity="0.8"/>
+            </svg>`;
+          spot.appendChild(crown);
+        }
+        td.appendChild(spot);
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    boardEl.appendChild(table);
+    updateScores();
+  }
+
+  function getLegalMoves(c, r){
+    const cell = state.board[r][c];
+    if(!cell.player || cell.player==='home1' || cell.player==='home2') return [];
+    const player = cell.player;
+    if(player!==state.turn) return [];
+    // Compute N = number of pieces in this column (excluding crown)
+    let N = 0;
+    for(let rr=0;rr<ROWS;rr++){
+      const cc = c;
+      const x = state.board[rr][cc];
+      if(x.player && x.player!==null && x.player!=='home1' && x.player!=='home2'){
+        N++;
+      }
+    }
+    if(N<=0) return [];
+    const moves = [];
+    for(const d of DIRS){
+      const nc = c + d.dc * N;
+      const nr = r + d.dr * N;
+      if(nc>=0 && nc<COLS && nr>=0 && nr<ROWS){
+        const target = state.board[nr][nc];
+        // Cannot move onto own piece
+        if(target.player && target.player!==null && target.player!=='home1' && target.player!=='home2' && target.player===player){
+          continue;
+        }
+        // Valid moves
+        moves.push({c:nc, r:nr});
+      }
+    }
+    return moves;
+  }
+
+  function onCellClick(c, r){
+    if(state.gameover) return;
+    const cell = state.board[r][c];
+    const moves = state.selected ? getLegalMoves(state.selected.c, state.selected.r) : [];
+    if(state.selected){
+      // Check if clicked on a legal move
+      const isMove = moves.find(m=>m.c===c && m.r===r);
+      if(isMove){
+        // Execute move
+        const from = state.board[state.selected.r][state.selected.c];
+        const to = state.board[r][c];
+        // Capture opponent
+        if(to.player && to.player!==null && to.player!=='home1' && to.player!=='home2' && to.player!==state.turn){
+          // Remove opponent piece
+          to.player = null;
+          state.scores[to.player] = Math.max(0, state.scores[to.player] - 1);
+          // If opponent had crown, drop it
+          if(state.crownHeld===to.player){
+            state.crownHeld = null;
+            to.crown = true;
+            state.crownPos = {c,r};
+          }
+        }
+        // Move piece
+        to.player = from.player;
+        from.player = null;
+        // Crown handling
+        if(from.crown){
+          if(state.crownHeld===state.turn){
+            // Crown was held, drop it here
+            to.crown = true;
+            state.crownPos = {c,r};
+            state.crownHeld = null;
+          } else if(state.crownHeld!==null){
+            // Crown was held by opponent, drop it
+            to.crown = true;
+            state.crownPos = {c,r};
+            state.crownHeld = null;
+          } else {
+            // Crown was here, pick it up
+            from.crown = false;
+            state.crownHeld = state.turn;
+          }
+        } else if(to.crown && state.crownHeld===null){
+          // Crown was here, pick it up
+          to.crown = false;
+          state.crownHeld = state.turn;
+          state.crownPos = null;
+        }
+        // Check win condition 1: crown at home
+        const atHome1 = (c===HOME1.c && r===HOME1.r && state.crownHeld===1);
+        const atHome2 = (c===HOME2.c && r===HOME2.r && state.crownHeld===2);
+        if(atHome1 || atHome2){
+          endGame(state.turn);
+          render();
+          return;
+        }
+        // Check win condition 2: opponent eliminated
+        const p1Count = countPieces(1), p2Count = countPieces(2);
+        if(p1Count<=0 || p2Count<=0){
+          const winner = p1Count<=0 ? 2 : 1;
+          endGame(winner);
+          render();
+          return;
+        }
+        // Switch turn
+        state.turn = state.turn===1 ? 2 : 1;
+        state.selected = null;
+        updateTurnUI();
+        render();
+        return;
+      }
+    }
+    // Select piece if own piece
+    if(cell.player && cell.player!==null && cell.player!=='home1' && cell.player!=='home2' && cell.player===state.turn){
+      state.selected = {c,r};
+      render();
+    } else {
+      state.selected = null;
+      render();
+    }
+  }
+
+  function countPieces(player){
+    let n=0;
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(state.board[r][c].player===player) n++;
+      }
+    }
+    return n;
+  }
+
+  function endGame(winner){
+    state.gameover = true;
+    bannerEl.style.display = 'flex';
+    winnerEl.textContent = `Player ${winner} Wins!`;
+    bannerEl.setAttribute('aria-hidden','false');
+  }
+
+  restartBtn.addEventListener('click', ()=>{
+    bannerEl.style.display = 'none';
+    bannerEl.setAttribute('aria-hidden','true');
+    init();
+  });
+
+  window.addEventListener('resize', ()=>{
+    if(!state.gameover) render();
+  });
+
+  // Start
+  init();
+})();
+</script>
+</body>
+</html>
