@@ -10,3 +10,8 @@ OpenRouter (free):
 
 * Nemotron reasoning
 + potential. many small errors, could be easy to fix up
+
+Cline:
+
+* Trinity Mini free
++ pretty messy
